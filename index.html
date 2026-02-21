@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZhhCard - 瞬間広東語作文アプリ</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Outfit:wght@400;600;700;800&family=Noto+Sans+Zhh:wght@400;600;700&family=Noto+Sans+HK:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <header class="app-header">
+        <a href="#/" class="logo" style="text-decoration: none;">🇭🇰 <span class="logo-text">ZhhCard</span></a>
+        <div class="header-actions">
+            <button id="themeToggleBtn" class="icon-btn" aria-label="テーマ切替">🌓</button>
+        </div>
+    </header>
+
+    <main id="app">
+        <!-- Views will be injected here -->
+    </main>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav">
+        <a href="#/" class="nav-item active" data-nav="home">🏠 ホーム</a>
+        <a href="#/manage" class="nav-item" data-nav="manage">✏️ 管理</a>
+        <a href="#/quiz-setup" class="nav-item" data-nav="quiz">📖 クイズ</a>
+        <a href="#/settings" class="nav-item" data-nav="settings">⚙️ 設定</a>
+    </nav>
+
+    <!-- Templates -->
+    <template id="tpl-home">
+        <div class="view home-view fade-in">
+            <h2>学習ダッシュボード</h2>
+            <div class="stats-grid">
+                <a href="#/manage" class="stat-card glass-panel">
+                    <div class="stat-value" id="statTotalCards">-</div>
+                    <div class="stat-label">カード総数</div>
+                </a>
+                <a href="#/manage" class="stat-card glass-panel">
+                    <div class="stat-value" id="statGenres">-</div>
+                    <div class="stat-label">ジャンル数</div>
+                </a>
+                <a href="#/weak" class="stat-card glass-panel weak">
+                    <div class="stat-value" id="statWeakCards">-</div>
+                    <div class="stat-label">要注意カード (ミス数1以上)</div>
+                </a>
+                <a href="#/favorite" class="stat-card glass-panel fav">
+                    <div class="stat-value" id="statFavCards">-</div>
+                    <div class="stat-label">お気に入り</div>
+                </a>
+            </div>
+            <div class="home-actions mt-4">
+                <a href="#/quiz-setup" class="btn btn-primary btn-large block-btn">🚀 クイズを始める</a>
+                <a href="#/manage?action=new" class="btn btn-secondary block-btn mt-2">➕ 新規カード作成</a>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-manage">
+        <div class="view manage-view fade-in">
+            <div class="view-header flex-between mb-3">
+                <h2 class="m-0">カード管理</h2>
+                <div class="header-controls flex gap-2">
+                    <button id="btnFetchServer" class="btn btn-secondary btn-small">☁️ サーバーから読込</button>
+                    <button id="btnAddNew" class="btn btn-primary btn-small">➕ 新規作成</button>
+                </div>
+            </div>
+            <div class="io-controls flex gap-2 mb-3">
+                <button id="btnExport" class="btn btn-secondary btn-small flex-1">💾 エクスポート</button>
+                <label class="btn btn-secondary btn-small flex-1 text-center cursor-pointer">
+                    📂 インポート <input type="file" id="importFile" accept=".json" hidden>
+                </label>
+            </div>
+
+            <div class="search-bar mb-3 flex gap-2">
+                <input type="text" id="searchInput" class="form-control flex-1" placeholder="日本語・広東語で検索...">
+                <select id="genreFilter" class="form-select flex-1">
+                    <option value="">全ジャンル</option>
+                </select>
+            </div>
+
+            <div id="cardList" class="card-list list-container"></div>
+
+            <div id="emptyState" class="empty-state text-center text-muted" style="display:none; padding: 2rem;">
+                <p>カードがありません</p>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-quiz-setup">
+        <div class="view quiz-setup-view fade-in">
+            <div class="text-center mb-4">
+                <h2>クイズの準備</h2>
+                <p class="text-muted">どのジャンルを学習しますか？</p>
+
+                <div class="glass-panel p-3 mt-4 mb-4 text-left">
+                    <label class="block mb-2 font-bold text-sm">出題形式を選択</label>
+                    <select id="quizModeSelect" class="form-select">
+                        <option value="jp-th">🇯🇵 日本語 → 🇭🇰 廣東話 (デフォルト)</option>
+                        <option value="th-jp">🇭🇰 廣東話 → 🇯🇵 日本語</option>
+                    </select>
+                </div>
+            </div>
+            <div class="genre-grid grid gap-3" id="quizGenreList">
+                <!-- Genre buttons injected here -->
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-quiz">
+        <div class="view quiz-view">
+            <div class="quiz-header flex-between mb-4">
+                <div class="progress-container flex-1 mr-3">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="quizProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="quiz-stats font-bold"><span id="qCount">1</span> / <span id="qTotal">10</span></div>
+                <button id="btnQuitQuiz" class="icon-btn ml-3">✕</button>
+            </div>
+
+            <div class="flashcard glass-panel text-center mb-4" id="flashcard">
+                <button id="btnToggleFavCard" class="card-fav-btn">☆</button>
+
+                <!-- Answer actions: copy, edit -->
+                <div class="card-actions" id="qCardActions"
+                    style="display:none; position:absolute; top: 1.25rem; left: 1.25rem; gap: 0.5rem; display: flex;">
+                    <button id="btnEditCard" class="icon-btn text-sm" style="width:36px; height:36px;"
+                        title="編集">✏️</button>
+                    <button id="btnCopyAnswer" class="icon-btn text-sm" style="width:36px; height:36px;"
+                        title="廣東話をコピー">📋</button>
+                </div>
+
+                <div class="card-prompt mb-4">
+                    <div class="text-muted mb-1 text-sm" id="qPromptLabel">日本語</div>
+                    <h3 class="native-text text-xl" id="qPrompt">日本語のプロンプトがここに入ります</h3>
+                    <div class="text-muted text-lg mt-2" id="qPromptHint" style="display: none;"></div>
+                </div>
+                <div class="card-answer mt-4" id="qAnswerContainer" style="visibility: hidden;">
+                    <div class="text-muted mb-1 text-sm" id="qAnswerLabel">廣東話</div>
+                    <div class="target-text text-2xl zhh-font font-bold mb-2 text-primary" id="qAnswer">廣東話</div>
+                    <div class="pronunciation-text text-lg mb-2" id="qPronunciation" style="display:none">[gwong2 dung1
+                        waa2]
+                    </div>
+                    <div class="memo-box glass-panel-inner mt-3 text-sm text-left p-3" id="qMemoBox"
+                        style="display: none;">
+                        <strong>💡 メモ:</strong> <span id="qMemo"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-controls gap-3 flex-col">
+                <div id="controls-hint" class="controls-group flex gap-3">
+                    <button class="btn btn-secondary btn-large flex-1" id="btnShowHint">🧩 ヒント</button>
+                    <button class="btn btn-primary btn-large flex-1" id="btnShowAnswer">👁️ 正解を見る</button>
+                </div>
+                <div id="controls-judge" class="controls-group flex gap-3" style="display: none;">
+                    <button class="btn btn-danger btn-large flex-1" id="btnWrong">❌ 不正解</button>
+                    <button class="btn btn-success btn-large flex-1" id="btnCorrect">⭕ 正解</button>
+                </div>
+            </div>
+
+            <div class="quiz-footer text-center mt-4">
+                <button id="btnTTS" class="btn btn-ghost" disabled>🔊 廣東話を読み上げる</button>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-result">
+        <div class="view result-view fade-in text-center">
+            <h2 class="mb-4">🎉 お疲れ様でした！</h2>
+            <div class="score-board glass-panel p-4 mb-4">
+                <div class="score-circle mb-3 text-3xl font-bold text-primary">
+                    <span id="scorePercent">100</span><span class="text-lg">%</span>
+                </div>
+                <div class="score-details flex justify-center gap-4 text-lg">
+                    <span class="text-success">⭕ <span id="scoreCorrect">0</span></span>
+                    <span class="text-danger">❌ <span id="scoreWrong">0</span></span>
+                </div>
+            </div>
+            <div class="result-actions flex gap-3 mb-4">
+                <a href="#/quiz-setup" class="btn btn-primary flex-1">もう一度</a>
+                <a href="#/" class="btn btn-secondary flex-1">ホーム</a>
+            </div>
+            <div class="weak-list text-left" id="resultWeakList" style="display:none">
+                <h3 class="mb-2">復習が必要なカード</h3>
+                <div id="resultCards" class="list-container"></div>
+            </div>
+        </div>
+    </template>
+
+    <template id="tpl-settings">
+        <div class="view settings-view fade-in">
+            <h2 class="mb-4">⚙️ アプリ設定</h2>
+
+            <div class="settings-section glass-panel p-4 mb-4">
+                <h3 class="mb-3 text-lg border-bottom pb-2">🔊 音声読み上げ (TTS)</h3>
+                <div class="form-group mb-3">
+                    <label for="voiceSelect" class="block mb-1">広東語の音声</label>
+                    <select id="voiceSelect" class="form-select w-full"></select>
+                    <p class="text-xs text-muted mt-1">※デバイスで利用可能なリストを表示しています</p>
+                </div>
+                <div class="form-group mb-3">
+                    <label for="voiceRate" class="block mb-1 flex-between">
+                        <span>読み上げ速度</span>
+                        <span id="rateValue" class="font-bold text-primary">1.0x</span>
+                    </label>
+                    <input type="range" id="voiceRate" class="w-full" min="0.5" max="1.5" step="0.1" value="1.0">
+                </div>
+                <button id="btnTestVoice" class="btn btn-secondary w-full">🔊 テスト再生</button>
+            </div>
+
+            <div class="settings-section glass-panel p-4 mb-4">
+                <h3 class="mb-3 text-lg border-bottom pb-2">🔄 クラウド同期 (GitHub Gist)</h3>
+                <p class="text-sm mb-3 text-muted">AES-256を利用して暗号化されたカードデータをGistと同期・保存します。情報はデバイス上に保存されます。</p>
+                <div class="form-group mb-2">
+                    <label class="block mb-1 text-sm font-bold">Personal Access Token (gistスコープ)</label>
+                    <input type="password" id="syncToken" class="form-control" placeholder="ghp_xxxxxxxxxxxx">
+                </div>
+                <div class="form-group mb-2">
+                    <label class="block mb-1 text-sm font-bold">Gist ID</label>
+                    <input type="text" id="syncGistId" class="form-control" placeholder="GistのID">
+                </div>
+                <div class="form-group mb-4">
+                    <label class="block mb-1 text-sm font-bold">暗号化パスワード (保存されません)</label>
+                    <input type="password" id="syncPassword" class="form-control" placeholder="復号に必要です。忘れないでください">
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnSyncUpload" class="btn btn-primary flex-1">☁️ アップロード</button>
+                    <button id="btnSyncDownload" class="btn btn-secondary flex-1">📥 ダウンロード</button>
+                </div>
+                <div id="syncStatus" class="mt-2 text-sm text-center"></div>
+            </div>
+
+            <div class="settings-section glass-panel p-4 mb-4">
+                <h3 class="mb-3 text-lg border-bottom pb-2">🔄 アプリの更新</h3>
+                <p class="text-sm mb-3">新しい機能や修正を読み込みます。</p>
+                <button id="btnUpdateApp" class="btn btn-primary w-full">🚀 アプリを最新版に更新</button>
+            </div>
+
+            <div class="settings-section glass-panel p-4 mb-4">
+                <h3 class="mb-3 text-lg border-bottom pb-2 text-danger">⚠️ データ管理</h3>
+                <p class="mb-3 text-sm">すべての学習データとカードを初期化します。この操作は取り消せません。</p>
+                <button id="btnEraseAll" class="btn btn-danger w-full">🗑️ 全データを削除する</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Modal Container for editing/creating -->
+    <div id="modalContainer"></div>
+
+    <script src="js/sync.js"></script>
+    <script src="db.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
