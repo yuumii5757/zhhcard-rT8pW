@@ -102,7 +102,7 @@ const SyncManager = {
 
     // --- GitHub Gist API ---
     // Filename used in Gist
-    FILENAME: "thaicard_sync.json",
+    FILENAME: "zhhcard_sync.json",
 
     // Upload entirely encrypted data to GitHub Gist
     async uploadToGist(token, gistId, dataObj, password) {

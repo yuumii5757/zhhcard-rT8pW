@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thaicard-v3';
+const CACHE_NAME = 'zhhcard-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
+                    if (cacheName !== CACHE_NAME && cacheName.startsWith('zhhcard-')) {
                         return caches.delete(cacheName);
                     }
                 })
